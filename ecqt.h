@@ -182,7 +182,7 @@ void sparseKernel_deinit(SparseKernel_t *psk);
 /* === CQT Transform Operations === */
 
 /**
- * @brief Initializes and allocates memory for a CQTResult structure.
+ * @brief Initializes and allocates memory for a CQTContext structure.
  *
  * This function prepares all internal buffers, FFT setup, and kernel matrix
  * needed to perform the Constant-Q Transform on real-valued input data.
@@ -196,10 +196,8 @@ void sparseKernel_deinit(SparseKernel_t *psk);
 CQTContext *cqtcontext_init(float fmin, float fs, int b, float thres);
 
 /**
- * @brief Frees memory and internal structures associated with a CQTResult
+ * @brief Frees memory and internal structures associated with a CQTContext
  * object.
- *
- * Must be called after CQTResult usage to prevent memory leaks.
  *
  * @param pres Pointer to the CQTResult structure to deinitialize.
  */
@@ -220,7 +218,22 @@ void cqtcontext_deinit(CQTContext *pcxt);
 int cqtcontext_transform(CQTContext *pctx, float *input, int size,
                          CQTResult *pres);
 
+/**
+ * @brief Initialize the CQTResult structure
+ *
+ * It is required to obtain the CQT transform and hold the result vector
+ *
+ * @param fmin minimum frequency
+ * @param fs samping rate
+ * @param b number of bins per octave
+ * @return Pointer to the structure
+ */
 CQTResult *cqtresult_init(float fmin, float fs, int b);
+
+/**
+ * @brief Deinitialize the CQTResult structure.
+ * @param pres Pointer to the CQTResult structure to deinitialize.
+ */
 void cqtresult_deinit(CQTResult *pres);
 
 // Implementations

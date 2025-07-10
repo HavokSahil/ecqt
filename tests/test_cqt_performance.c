@@ -1,4 +1,4 @@
-#include "../cqt.h"
+#include "../ecqt.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>

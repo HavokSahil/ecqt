@@ -3,7 +3,7 @@
 #include <stdio.h>
 #endif // CQT_DEBUG
 
-#include "../cqt.h"
+#include "../ecqt.h"
 
 int main() {
     float fmin = 261.63f;
