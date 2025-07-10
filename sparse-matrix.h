@@ -180,6 +180,17 @@ SparseMatrix *sparse_matrix_init(int nrows, int ncols);
 void sparse_matrix_deinit(SparseMatrix *psm);
 
 /**
+ * @brief Get the queried entry at a row and column value in Sparse Matrix.
+ * @param psm Pointer to the Sparse Matrix
+ * @param irow Index of the row
+ * @param icol Index of the col
+ * @param entry Pointer to the memory where result is expected
+ * @return 0 on success, -1 on error
+ */
+int sparse_matrix_get_entry(SparseMatrix *psm, int irow, int icol,
+                            SMType *entry);
+
+/**
  * @brief Transpose the given sparse matrix in-place.
  * Swaps row and column indices for each non-zero entry.
  * @param psm Pointer to the sparse matrix
@@ -242,12 +253,19 @@ int sparse_matrix_mult_mem_right(SparseMatrix *psm, SMType *pmem, int size,
 */
 Vec *vec_init(int dim) {
     Vec *pv = (Vec *)malloc(sizeof(Vec));
-    if (pv == NULL)
+    if (pv == NULL) {
+#if defined(SM_DEBUG)
+        printf("Memory allocation failed for Vec in vec_init.\n");
+#endif
         return NULL;
+    }
     pv->dim = dim;
-    pv->entries = (SMType *)malloc(sizeof(SMType) * pv->dim);
+    pv->entries = (SMType *)malloc(sizeof(SMType) * dim);
     if (pv->entries == NULL) {
         free(pv);
+#if defined(SM_DEBUG)
+        printf("Memory allocation failed for entries in vec_init.\n");
+#endif
         return NULL;
     }
     // initialize the zero vector
@@ -256,11 +274,18 @@ Vec *vec_init(int dim) {
 }
 
 Vec *vec_init_mem(int dim, SMType **pmem) {
-    if (pmem == NULL || *pmem == NULL)
+    if (pmem == NULL || *pmem == NULL) {
+#if defined(SM_DEBUG)
+        printf("invalid pointer provided in vec_init_mem.\n");
+#endif
         return NULL;
+    }
     Vec *pv = (Vec *)malloc(sizeof(Vec));
     if (pv == NULL)
-        return NULL;
+#if defined(SM_DEBUG)
+        printf("Memory allocation failed for vec in vec_init_mem.\n");
+#endif
+    return NULL;
     pv->dim = dim;
     pv->entries = *pmem;
     // zero out the memory region
@@ -279,8 +304,13 @@ void vec_deinit(Vec *pv) {
 
 SparseMatrix *sparse_matrix_init(int nrows, int ncols) {
     SparseMatrix *psm = (SparseMatrix *)malloc(sizeof(SparseMatrix));
-    if (psm == NULL)
+    if (psm == NULL) {
+#if defined(SM_DEBUG)
+        printf("Memory allocation failure for SparseMatrix in "
+               "sparse_matrix_init.\n");
+#endif
         return NULL;
+    }
     psm->nrows = MIN(nrows, SM_MAX_ROWS);
     psm->ncols = MIN(ncols, SM_MAX_COLS);
 
@@ -294,16 +324,26 @@ SparseMatrix *sparse_matrix_init(int nrows, int ncols) {
     psm->nzentries = (SMType *)malloc(sizeof(SMType) * mxnnz);
     if (psm->nzentries == NULL) {
         sparse_matrix_deinit(psm);
+#if defined(SM_DEBUG)
+        printf("Memory allocation failed for non-zero entries in "
+               "sparse_matrix_init.\n");
+#endif
         return NULL;
     }
     psm->prows = (int *)malloc(sizeof(int) * mxnnz);
     if (psm->prows == NULL) {
         sparse_matrix_deinit(psm);
+#if defined(SM_DEBUG)
+        printf("Memory allocation failed for rows in sparse_matrix_init.\n");
+#endif
         return NULL;
     }
     psm->pcols = (int *)malloc(sizeof(int) * mxnnz);
     if (psm->pcols == NULL) {
         sparse_matrix_deinit(psm);
+#if defined(SM_DEBUG)
+        printf("Memory allocation failed for columns in sparse_matrix_init.\n");
+#endif
         return NULL;
     }
 
@@ -323,6 +363,33 @@ void sparse_matrix_deinit(SparseMatrix *psm) {
     }
 }
 
+int sparse_matrix_get_entry(SparseMatrix *psm, int irow, int icol,
+                            SMType *entry) {
+    if (psm == NULL) {
+#if defined(SM_DEBUG)
+        printf("Null pointer provided in sparse_matrix_get_entry.\n");
+#endif
+        return -1; // invalid pointer
+    }
+
+    if (psm->nrows > irow && irow >= 0 && psm->ncols > icol && icol >= 0) {
+        memset(entry, 0, sizeof(SMType)); // start with zero value
+        for (int i = 0; i < psm->nnz; i++) {
+            int row = psm->prows[i];
+            int col = psm->pcols[i];
+            if (row == irow && col == icol) {
+                *entry = psm->nzentries[i];
+            }
+        }
+        return 0; // success
+    } else {
+#if defined(SM_DEBUG)
+        printf("The queried index for row or column is out of range.\n");
+#endif
+        return -1; // out of bound query
+    }
+}
+
 void sparse_matrix_transpose(SparseMatrix *psm) {
     if (psm && psm->nzentries && psm->prows && psm->pcols) {
         for (int i = 0; i < psm->nnz; i++) {
@@ -333,6 +400,10 @@ void sparse_matrix_transpose(SparseMatrix *psm) {
             *row = *col;
             *col = tmp;
         }
+    } else {
+#if defined(SM_DEBUG)
+        printf("Invalid pointers provided to sparse_matrix_transpose.\n");
+#endif
     }
 }
 
@@ -349,9 +420,22 @@ int sparse_matrix_add_entry(SparseMatrix *psm, SMType entry, int irow,
                 psm->pcols[psm->nnz] = icol;
                 psm->nnz++;
                 return 0;
+            } else {
+#if defined(SM_DEBUG)
+                printf("The maximum non zero entries limit exceeded.\n");
+#endif
+                return -1;
             }
+        } else {
+#if defined(SM_DEBUG)
+            printf("The index row or column is out of limits.\n");
+#endif
+            return -1;
         }
     }
+#if defined(SM_DEBUG)
+    printf("Invalid pointer provided in sparse_matrix_add_entry.\n");
+#endif
     return -1;
 }
 
@@ -359,9 +443,17 @@ int sparse_matrix_mult_vec_left(Vec *pv, SparseMatrix *psm, Vec *res) {
     if (pv && pv->entries && res && res->entries && psm && psm->prows &&
         psm->pcols && psm->nzentries) {
         if (pv->dim != psm->nrows) {
+#if defined(SM_DEBUG)
+            printf("pv->dim(%d) != psm->nrows(%d): dimension mismatch.\n",
+                   pv->dim, psm->nrows);
+#endif
             return -1; // dimension mismatch for input
         }
         if (res->dim != psm->ncols) {
+#if defined(SM_DEBUG)
+            printf("res->dim(%d) != psm->ncols(%d): dimension mismatch.\n",
+                   res->dim, psm->ncols);
+#endif
             return -1; // dimension mismatch for output
         }
         memset(res->entries, 0, res->dim * sizeof(SMType));
@@ -374,6 +466,9 @@ int sparse_matrix_mult_vec_left(Vec *pv, SparseMatrix *psm, Vec *res) {
         }
         return 0; // success
     }
+#if defined(SM_DEBUG)
+    printf("invalid pointer provided in sparse_matrix_mult_vec_left.\n");
+#endif
     return -1; // invalid pointer
 }
 
@@ -382,9 +477,17 @@ int sparse_matrix_mult_mem_left(SMType *pmem, int size, SparseMatrix *psm,
     if (pmem && psm && psm->prows && psm->pcols && psm->nzentries && res &&
         res->entries) {
         if (size != psm->nrows) {
+#if defined(SM_DEBUG)
+            printf("size(%d) != psm->nrows(%d): dimension mismatch.\n", size,
+                   psm->ncols);
+#endif
             return -1; // dimension mismatch for input
         }
         if (res->dim != psm->ncols) {
+#if defined(SM_DEBUG)
+            printf("res->dim(%d) != psm->ncols(%d): dimension mismatch.\n",
+                   res->dim, psm->ncols);
+#endif
             return -1; // dimemsion mismatch for output
         }
         memset(res->entries, 0, res->dim * sizeof(SMType));
@@ -396,6 +499,9 @@ int sparse_matrix_mult_mem_left(SMType *pmem, int size, SparseMatrix *psm,
         }
         return 0; // success
     }
+#if defined(SM_DEBUG)
+    printf("invalid pointer provided in sparse_matrix_mult_mem_left.\n");
+#endif
     return -1; // invalid pointer
 }
 
@@ -403,9 +509,17 @@ int sparse_matrix_mult_vec_right(SparseMatrix *psm, Vec *pv, Vec *res) {
     if (pv && pv->entries && res && res->entries && psm && psm->prows &&
         psm->pcols && psm->nzentries) {
         if (pv->dim != psm->ncols) {
+#if defined(SM_DEBUG)
+            printf("pv->dim(%d) != psm->ncols(%d): dimension mismatch.\n",
+                   pv->dim, psm->ncols);
+#endif
             return -1; // dimension mismatch for input
         }
         if (res->dim != psm->nrows) {
+#if defined(SM_DEBUG)
+            printf("res->dim(%d) != psm->nrows(%d): dimension mismatch.\n",
+                   res->dim, psm->nrows);
+#endif
             return -1; // dimension mismatch for output
         }
         memset(res->entries, 0, res->dim * sizeof(SMType));
@@ -418,6 +532,9 @@ int sparse_matrix_mult_vec_right(SparseMatrix *psm, Vec *pv, Vec *res) {
         }
         return 0; // success
     }
+#if defined(SM_DEBUG)
+    printf("invalid pointer provided in sparse_matrix_mult_vec_right.\n");
+#endif
     return -1; // invalid pointer
 }
 
@@ -426,9 +543,17 @@ int sparse_matrix_mult_mem_right(SparseMatrix *psm, SMType *pmem, int size,
     if (pmem && res && res->entries && psm && psm->prows && psm->pcols &&
         psm->nzentries) {
         if (size != psm->ncols) {
+#if defined(SM_DEBUG)
+            printf("size(%d) != psm->ncols(%d): dimension mismatch.\n", size,
+                   psm->ncols);
+#endif
             return -1; // dimension mismatch for input
         }
         if (res->dim != psm->nrows) {
+#if defined(SM_DEBUG)
+            printf("res->dim(%d) != psm->nrows(%d): dimension mismatch.\n",
+                   res->dim, psm->nrows);
+#endif
             return -1; // dimension mismatch for output
         }
         memset(res->entries, 0, res->dim * sizeof(SMType));
@@ -440,6 +565,9 @@ int sparse_matrix_mult_mem_right(SparseMatrix *psm, SMType *pmem, int size,
         }
         return 0; // success
     }
+#if defined(SM_DEBUG)
+    printf("invalid pointer provided in sparse_matrix_mult_mem_right.\n");
+#endif
     return -1; // invalid pointer
 }
 
@@ -476,19 +604,25 @@ void vec_debug_print(Vec *pv) {
  * Requires `SM_DEBUG` to be defined.
  * @param psm Pointer to the sparse matrix
  */
-void sparse_matrix_debug_print(SparseMatrix *psm) {
+void sparse_matrix_debug_print(const SparseMatrix *psm) {
     if (psm == NULL) {
-        printf("Null pointer provided.\n");
+        printf("Sparse Matrix: Null pointer.\n");
         return;
     }
+    printf("INFO: SparseMatrix\n");
+    printf("nrows: %d, ncols: %d\n", psm->nrows, psm->ncols);
+    printf("Non zero entries: %d\n", psm->nnz);
     if (psm->nzentries == NULL) {
         printf("psm->nzentries is null.\n");
+        return;
     }
     if (psm->prows == NULL) {
         printf("psm->prows is null.\n");
+        return;
     }
     if (psm->pcols == NULL) {
         printf("psm->pcols is null.\n");
+        return;
     }
 
     assert(psm->nrows >= 0);
@@ -513,42 +647,30 @@ void sparse_matrix_debug_print(SparseMatrix *psm) {
         }
         printf("\n");
     }
+    printf("END: SparseMatrix\n");
 }
 
-/**
- * @brief Prints detailed information about a SparseMatrix.
- *
- * This function prints the number of non-zero entries (nnz), the matrix
- * dimensions, and for each non-zero entry, its value and corresponding (row,
- * col) position.
- *
- * @param mat Pointer to the SparseMatrix structure.
- */
-void sparse_matrix_debug_info(const SparseMatrix *mat) {
-    if (mat == NULL) {
-        printf("SparseMatrix: NULL pointer\n");
+void sparse_matrix_debug_print_vec(Vec *pv) {
+    if (pv == NULL) {
+        printf("Vec is null.\n");
         return;
     }
-
-    printf("=== SparseMatrix Info ===\n");
-    printf("Dimensions: %d rows x %d cols\n", mat->nrows, mat->ncols);
-    printf("Non-zero entries (nnz): %d\n", mat->nnz);
-
-    for (int i = 0; i < mat->nnz; i++) {
-        int row = mat->prows[i];
-        int col = mat->pcols[i];
-        SMType val = mat->nzentries[i];
-
-#define COMPLEX_FLOAT
-#ifdef COMPLEX_FLOAT
-        printf("Entry %d: (%d, %d) = %.6f + %.6fi\n", i, row, col, val.re,
-               val.im);
+    printf("INFO: Vec\n");
+    printf("dim: %d\n", pv->dim);
+    if (pv->entries == NULL) {
+        printf("pv->entries is null.\n");
+        return;
+    }
+    printf("[ ");
+    for (int i = 0; i < pv->dim; i++) {
+#if defined(SM_DBG_PRINT_FN)
+        SM_DBG_PRINT_FN(pv->entries[i]);
 #else
-        printf("Entry %d: (%d, %d) = %.6f\n", i, row, col, val);
+        printf(SM_PRINT_FMT " ", pv->entries[i]);
 #endif
     }
-
-    printf("=========================\n");
+    printf("]\n");
+    printf("END: Vec\n");
 }
 
 #endif // SM_DEBUG

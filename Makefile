@@ -1,20 +1,56 @@
 CC			:= gcc
-CFLAGS		:= -O3 -lm -I. -DCQT_DEBUG -DSM_DEBUG
+CFLAGS 		:= -g -O0 -Wall -lm
+INC			:= .
 
-%.o: %.c
+CFLAGS 		+= $(INC:%=-I%)
+
+.PHONY: default
+default: all
+
+pffft.o: pffft/pffft.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-%.o: pffft/%.c
+%.o: tests/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-test: test_cqt.o pffft.o cqt.o
-	$(CC) $(CFLAGS) $^ -o $@
-	./$@
+test_sm%: test_sm%.o
+	$(CC) $(CFLAGS) $< -o $@
 
-visualize: test_visualize.o pffft.o cqt.o
+test_cqt%: test_cqt%.o pffft.o
 	$(CC) $(CFLAGS) $^ -o $@
-	./$@
+
+.PHONY: test_sm
+test_sm: 	test_sm_basic \
+			test_sm_complex \
+			test_sm_memory \
+			test_sm_performance
+	@echo "Performing all Sparse Matrix tests..."
+	@./test_sm_basic
+	@./test_sm_complex
+	@./test_sm_memory
+	@./test_sm_performance
+	@echo "All Sparse Matrix tests finished."
+
+.PHONY: test_cqt
+test_cqt: 	test_cqt_basic \
+			test_cqt_memory \
+			test_cqt_performance \
+			test_cqt_sparsekernel \
+			test_cqt_transform
+	@echo "Performing all CQT tests..."
+	@./test_cqt_basic
+	@./test_cqt_memory
+	@./test_cqt_performance
+	@./test_cqt_sparsekernel
+	@./test_cqt_transform
+	@echo "All CQT tests finished."
+
+.PHONY: all
+all: test_sm test_cqt
 
 .PHONY: clean
 clean:
-	rm -r *.o test visualize
+	@rm -f \
+		tests/*.o \
+		*.o \
+		test_*

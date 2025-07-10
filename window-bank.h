@@ -47,7 +47,7 @@
  * @brief Pi constant used in window calculations.
  */
 #ifndef PI
-#define PI 3.14159265359
+#define PI 3.14159265358979323846
 #endif // PI
 
 #include <assert.h>
