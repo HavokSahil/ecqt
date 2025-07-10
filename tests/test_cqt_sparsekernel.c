@@ -1,4 +1,7 @@
-#define CQT_DEBUG
+#ifndef CQT_DEBUG
+#include <assert.h>
+#include <stdio.h>
+#endif // CQT_DEBUG
 
 #include "../cqt.h"
 
@@ -53,10 +56,13 @@ int main() {
             fmax = cabs(z);
             mbin = i;
         }
+#ifdef CQT_DEBUG
         printf("[%d]: %.6f\n", i, cabs(z));
+#endif
     }
-
+#ifdef CQT_DEBUG
     printf("The max bin is: %d\n", mbin);
+#endif
     // assert(freq == 440.0f && mbin >= 8 && mbin <= 10);
 
     return 0; // pass

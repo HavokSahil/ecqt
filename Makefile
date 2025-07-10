@@ -1,5 +1,5 @@
 CC			:= gcc
-CFLAGS 		:= -g -O0 -Wall -lm
+CFLAGS 		:= -g -O0 -lm
 INC			:= .
 
 CFLAGS 		+= $(INC:%=-I%)

@@ -3,8 +3,10 @@
 #define SMSum(a, b) (a + b)
 #define SM_PRINT_FMT "%f"
 
-// enable debug
-#define SM_DEBUG
+#ifndef SM_DEBUG
+#include <assert.h>
+#include <stdio.h>
+#endif // SM_DEBUG
 
 #include "../sparse-matrix.h"
 
@@ -35,7 +37,9 @@ int main() {
     assert(fabs(e2 - 1.2) < epsilon);
     assert(fabs(e3 - 1.7) < epsilon);
 
+#if defined(SM_DEBUG)
     sparse_matrix_debug_print(psm);
+#endif
 
     int dim = 3;
     Vec *pv = vec_init(dim);
@@ -46,7 +50,9 @@ int main() {
     pv->entries[1] = 1.7f;
     pv->entries[2] = 1.8f;
 
+#if defined(SM_DEBUG)
     sparse_matrix_debug_print_vec(pv);
+#endif
 
     Vec *pr = vec_init(dim);
     assert(pr != NULL);
@@ -62,7 +68,9 @@ int main() {
     assert(fabs(pr->entries[1] - 2.04) < epsilon);
     assert(fabs(pr->entries[2] - 2.89) < epsilon);
 
+#if defined(SM_DEBUG)
     sparse_matrix_debug_print_vec(pr);
+#endif
 
     sparse_matrix_deinit(psm);
     vec_deinit(pv);

@@ -16,7 +16,10 @@ Complex cprod(Complex a, Complex b);
 void print_complex(Complex a);
 #define SM_DBG_PRINT_FN(a) print_complex(a)
 
-#define SM_DEBUG
+#ifndef SM_DEBUG
+#include <assert.h>
+#include <stdio.h>
+#endif // SM_DEBUG
 
 #include "../sparse-matrix.h"
 
@@ -43,7 +46,9 @@ int main() {
     assert(sparse_matrix_add_entry(psm, e3, 1, 1) == 0);
     assert(sparse_matrix_add_entry(psm, e4, 2, 2) == 0);
 
+#if defined(SM_DEBUG)
     sparse_matrix_debug_print(psm);
+#endif
 
     int dim = 3;
     Vec *pv = vec_init(dim);
@@ -58,7 +63,9 @@ int main() {
     pv->entries[1] = v2;
     pv->entries[2] = v3;
 
+#if defined(SM_DEBUG)
     sparse_matrix_debug_print_vec(pv);
+#endif
 
     Vec *pr = vec_init(dim);
     assert(pr != NULL);
@@ -69,7 +76,9 @@ int main() {
     Complex rl3 = {0.1f, -0.03f};
     // perform the left product on the sparse matrix
     assert(sparse_matrix_mult_vec_left(pv, psm, pr) == 0);
+#if defined(SM_DEBUG)
     sparse_matrix_debug_print_vec(pr);
+#endif
     assert(CEQ(pr->entries[0], rl1));
     assert(CEQ(pr->entries[1], rl2));
     assert(CEQ(pr->entries[2], rl3));
@@ -79,7 +88,9 @@ int main() {
     Complex rr3 = {0.1f, -0.03f};
     // perform the right product on the sparse matrix
     assert(sparse_matrix_mult_vec_right(psm, pv, pr) == 0);
+#if defined(SM_DEBUG)
     sparse_matrix_debug_print_vec(pr);
+#endif
     assert(CEQ(pr->entries[0], rr1));
     assert(CEQ(pr->entries[1], rr2));
     assert(CEQ(pr->entries[2], rr3));
