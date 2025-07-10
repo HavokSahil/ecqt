@@ -1,5 +1,5 @@
 # EFFICIENT CONSTANT-Q TRANSFORM (ECQT)
-==========================
+------------
 A simple header only library for obtaining Constant Q-Transform of the real-signals for real time applications.
 
 > **Dependencies**: PFFFT, sparse-matrix.h, window-bank.h
